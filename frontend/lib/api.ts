@@ -64,12 +64,14 @@ export const postApi = {
 };
 
 export const momentApi = {
-  getList: (params?: { page?: number; limit?: number }) => 
+  getList: (params?: { page?: number; limit?: number }) =>
     api.get('/moments', { params }),
-  getByUser: (userId: string, params?: { page?: number; limit?: number }) => 
+  getByUser: (userId: string, params?: { page?: number; limit?: number }) =>
     api.get(`/moments/user/${userId}`, { params }),
-  create: (data: { content: string; images?: string[] }) => 
+  create: (data: { content: string; images?: string[] }) =>
     api.post('/moments', data),
+  repost: (id: string, comment?: string) =>
+    api.post(`/moments/${id}/repost`, { comment }),
   delete: (id: string) => api.delete(`/moments/${id}`),
 };
 

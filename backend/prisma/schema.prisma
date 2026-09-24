@@ -130,13 +130,27 @@ model Moment {
   images      String[]
   authorId    String    @db.ObjectId
   author      User      @relation(fields: [authorId], references: [id])
-  
+
   comments    Comment[]
   likes       Like[]
-  
+
+  // 转发相关：repostOfId 指向被转发的原动态，原动态撤下后置空（转发内容仍保留快照）
+  repostOfId  String?   @db.ObjectId
+  repostOf    Moment?   @relation("MomentReposts", fields: [repostOfId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reposts     Moment[]  @relation("MomentReposts")
+
+  // 转发时附的看法（不超过 80 字），普通动态为空
+  repostComment String?
+  // 转发时刻对原动态的快照，原动态撤下后仍可展示当时的正文、原图与来源昵称
+  sourceAuthorId       String?  @db.ObjectId
+  sourceAuthorUsername String?
+  sourceContent        String?
+  sourceImages         String[]
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  
+
+  @@index([repostOfId])
   @@map("moments")
 }
 
@@ -152,8 +166,8 @@ model Comment {
   postId      String?   @db.ObjectId
   post        Post?     @relation(fields: [postId], references: [id])
   momentId    String?   @db.ObjectId
-  moment      Moment?   @relation(fields: [momentId], references: [id])
-  
+  moment      Moment?   @relation(fields: [momentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   likes       Like[]
   
   createdAt   DateTime  @default(now())
@@ -172,9 +186,9 @@ model Like {
   postId      String?   @db.ObjectId
   post        Post?     @relation(fields: [postId], references: [id])
   momentId    String?   @db.ObjectId
-  moment      Moment?   @relation(fields: [momentId], references: [id])
+  moment      Moment?   @relation(fields: [momentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   commentId   String?   @db.ObjectId
-  comment     Comment?  @relation(fields: [commentId], references: [id])
+  comment     Comment?  @relation(fields: [commentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
   createdAt   DateTime  @default(now())
   

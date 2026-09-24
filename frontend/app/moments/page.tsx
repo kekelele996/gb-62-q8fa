@@ -2,19 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { momentApi, uploadApi, interactionApi } from '@/lib/api';
-import { formatTime } from '@/lib/time';
-import { Moment, Comment } from '@/types';
-import { 
-  Plus, 
-  Heart, 
-  MessageCircle, 
-  Send,
+import { momentApi, uploadApi } from '@/lib/api';
+import { Moment } from '@/types';
+import MomentCard from '@/components/MomentCard';
+import {
+  MessageCircle,
   X,
-  Image as ImageIcon,
-  User as UserIcon
+  Image as ImageIcon
 } from 'lucide-react';
 
 export default function MomentsPage() {
@@ -24,7 +19,6 @@ export default function MomentsPage() {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const { user } = useAuth();
   const router = useRouter();
 
@@ -88,31 +82,6 @@ export default function MomentsPage() {
       alert('发布失败，请重试');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleLike = async (momentId: string) => {
-    try {
-      await interactionApi.toggleLike({ momentId });
-      loadMoments();
-    } catch (error) {
-      console.error('点赞失败', error);
-    }
-  };
-
-  const handleComment = async (momentId: string) => {
-    const commentText = commentInputs[momentId]?.trim();
-    if (!commentText) return;
-
-    try {
-      await interactionApi.createComment({
-        content: commentText,
-        momentId
-      });
-      setCommentInputs(prev => ({ ...prev, [momentId]: '' }));
-      loadMoments();
-    } catch (error) {
-      alert('评论失败');
     }
   };
 
@@ -194,115 +163,13 @@ export default function MomentsPage() {
       ) : (
         <div className="space-y-4">
           {moments.map((moment) => (
-            <div key={moment.id} className="card p-4">
-              <div className="flex items-start space-x-3">
-                <Link href={`/profile/${moment.author.id}`} className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    {moment.author.avatar ? (
-                      <img
-                        src={moment.author.avatar}
-                        alt={moment.author.username}
-                        className="w-10 h-10 rounded-full"
-                      />
-                    ) : (
-                      <UserIcon className="w-5 h-5 text-purple-600" />
-                    )}
-                  </div>
-                </Link>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2">
-                    <Link href={`/profile/${moment.author.id}`} className="font-medium text-gray-800">
-                      {moment.author.username}
-                    </Link>
-                    <span className={`level-badge level-${moment.author.level}`}>
-                      {moment.author.level === 'SEED' && '🌰'}
-                      {moment.author.level === 'SPROUT' && '🌱'}
-                      {moment.author.level === 'FLOWER' && '🌸'}
-                      {moment.author.level === 'TREE' && '🌳'}
-                    </span>
-                    <span className="text-sm text-gray-400">
-                      {formatTime(moment.createdAt)}
-                    </span>
-                  </div>
-
-                  {moment.content && (
-                    <p className="text-gray-700 mt-2 whitespace-pre-wrap">
-                      {moment.content}
-                    </p>
-                  )}
-
-                  {moment.images && moment.images.length > 0 && (
-                    <div className={`grid gap-2 mt-3 ${
-                      moment.images.length === 1 ? 'grid-cols-1' :
-                      moment.images.length === 2 ? 'grid-cols-2' :
-                      'grid-cols-3'
-                    }`}>
-                      {moment.images.map((img, idx) => (
-                        <img
-                          key={idx}
-                          src={img}
-                          alt=""
-                          className={`object-cover rounded-lg ${
-                            moment.images!.length === 1 ? 'w-full max-h-80' : 'w-full aspect-square'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex items-center space-x-6 mt-4">
-                    <button
-                      onClick={() => handleLike(moment.id)}
-                      className="flex items-center space-x-1 text-gray-500 hover:text-red-500"
-                    >
-                      <Heart className="w-5 h-5" />
-                      <span className="text-sm">{moment._count?.likes || 0}</span>
-                    </button>
-                    <span className="flex items-center space-x-1 text-gray-500">
-                      <MessageCircle className="w-5 h-5" />
-                      <span className="text-sm">{moment._count?.comments || 0}</span>
-                    </span>
-                  </div>
-
-                  {moment.comments && moment.comments.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      {moment.comments.slice(0, 3).map((comment) => (
-                        <div key={comment.id} className="text-sm py-1">
-                          <Link href={`/profile/${comment.author.id}`} className="font-medium text-gray-800">
-                            {comment.author.username}
-                          </Link>
-                          <span className="text-gray-600 ml-1">{comment.content}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex space-x-2 mt-3">
-                    <input
-                      type="text"
-                      value={commentInputs[moment.id] || ''}
-                      onChange={(e) => setCommentInputs(prev => ({
-                        ...prev,
-                        [moment.id]: e.target.value
-                      }))}
-                      className="flex-1 input-field py-1 text-sm"
-                      placeholder="评论..."
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleComment(moment.id);
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={() => handleComment(moment.id)}
-                      className="p-1 text-green-500 hover:bg-green-50 rounded"
-                    >
-                      <Send className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <MomentCard
+              key={moment.id}
+              moment={moment}
+              currentUserId={user?.id}
+              isAdmin={user?.isAdmin}
+              onChange={loadMoments}
+            />
           ))}
         </div>
       )}

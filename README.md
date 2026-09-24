@@ -199,8 +199,11 @@ npm run dev
 - `GET /api/posts/:id` - 获取帖子详情
 
 ### 花友圈
-- `GET /api/moments` - 获取动态列表
+- `GET /api/moments` - 获取动态列表（含转发，自动标记当前用户是否已转发）
 - `POST /api/moments` - 发布动态
+- `POST /api/moments/:id/repost` - 转发动态（可带不超过 80 字的看法）
+- `GET /api/moments/user/:userId` - 获取某用户的动态与转发
+- `DELETE /api/moments/:id` - 撤下动态（原作者/转发者各撤各的，管理员可撤任意）
 
 ### 用户关系
 - `POST /api/users/follow/:userId` - 关注用户

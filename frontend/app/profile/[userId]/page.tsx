@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { userApi, diaryApi, momentApi } from '@/lib/api';
 import { formatTime } from '@/lib/time';
 import { User, Diary, Moment } from '@/types';
+import MomentCard from '@/components/MomentCard';
 import { 
   BookOpen, 
   Users, 
@@ -262,28 +263,13 @@ export default function ProfilePage() {
         ) : (
           <div className="space-y-4">
             {moments.map((moment) => (
-              <div key={moment.id} className="card p-4">
-                {moment.content && (
-                  <p className="text-gray-700 whitespace-pre-wrap">
-                    {moment.content}
-                  </p>
-                )}
-                {moment.images && moment.images.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-3">
-                    {moment.images.map((img, idx) => (
-                      <img
-                        key={idx}
-                        src={img}
-                        alt=""
-                        className="w-full aspect-square object-cover rounded-lg"
-                      />
-                    ))}
-                  </div>
-                )}
-                <p className="text-sm text-gray-400 mt-3">
-                  {formatTime(moment.createdAt)}
-                </p>
-              </div>
+              <MomentCard
+                key={moment.id}
+                moment={moment}
+                currentUserId={user?.id}
+                isAdmin={user?.isAdmin}
+                onChange={loadContent}
+              />
             ))}
           </div>
         )

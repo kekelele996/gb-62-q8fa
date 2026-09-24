@@ -50,6 +50,15 @@ export interface Post {
   updatedAt: string;
 }
 
+export interface MomentSource {
+  id: string | null;
+  author: Pick<User, 'id' | 'username'> & { avatar?: string; level?: UserLevel };
+  content: string;
+  images: string[];
+  createdAt: string | null;
+  deleted: boolean;
+}
+
 export interface Moment {
   id: string;
   content: string;
@@ -57,6 +66,10 @@ export interface Moment {
   authorId: string;
   author: Pick<User, 'id' | 'username' | 'avatar' | 'level'>;
   comments?: Comment[];
+  repostOfId?: string | null;
+  repostComment?: string | null;
+  source?: MomentSource;
+  hasReposted?: boolean;
   _count?: {
     likes: number;
     comments: number;
