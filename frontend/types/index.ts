@@ -61,6 +61,16 @@ export interface Moment {
     likes: number;
     comments: number;
   };
+  // 转发相关
+  repostOfId?: string | null;
+  repostComment?: string | null;
+  sourceAuthorId?: string | null;
+  sourceAuthorName?: string | null;
+  sourceAuthorAvatar?: string | null;
+  sourceContent?: string | null;
+  sourceImages?: string[];
+  // 来源原动态是否已撤下（列表接口计算）
+  sourceDeleted?: boolean;
   createdAt: string;
   updatedAt: string;
 }

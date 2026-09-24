@@ -7,14 +7,16 @@ import { useAuth } from '@/context/AuthContext';
 import { userApi, diaryApi, momentApi } from '@/lib/api';
 import { formatTime } from '@/lib/time';
 import { User, Diary, Moment } from '@/types';
-import { 
-  BookOpen, 
-  Users, 
+import RepostSourceBox from '@/components/RepostSourceBox';
+import {
+  BookOpen,
+  Users,
   UserPlus,
   UserMinus,
   MessageCircle,
   Calendar,
-  User as UserIcon
+  User as UserIcon,
+  Trash2
 } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -91,6 +93,16 @@ export default function ProfilePage() {
       loadProfile();
     } catch (error) {
       alert('操作失败');
+    }
+  };
+
+  const handleDeleteMoment = async (momentId: string) => {
+    if (!confirm('确定撤下这条动态吗？')) return;
+    try {
+      await momentApi.delete(momentId);
+      loadContent();
+    } catch (error: any) {
+      alert(error.response?.data?.error || '删除失败');
     }
   };
 
@@ -263,12 +275,31 @@ export default function ProfilePage() {
           <div className="space-y-4">
             {moments.map((moment) => (
               <div key={moment.id} className="card p-4">
-                {moment.content && (
+                <div className="flex items-center space-x-2 mb-1">
+                  <span className="text-sm text-gray-500">
+                    {moment.repostOfId ? '转发了一条动态' : '发布了动态'}
+                  </span>
+                  <span className="text-sm text-gray-400">
+                    {formatTime(moment.createdAt)}
+                  </span>
+                  {(isOwnProfile || user?.isAdmin) && (
+                    <button
+                      onClick={() => handleDeleteMoment(moment.id)}
+                      className="ml-auto flex items-center space-x-1 text-gray-400 hover:text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span className="text-sm">撤下</span>
+                    </button>
+                  )}
+                </div>
+
+                {!moment.repostOfId && moment.content && (
                   <p className="text-gray-700 whitespace-pre-wrap">
                     {moment.content}
                   </p>
                 )}
-                {moment.images && moment.images.length > 0 && (
+
+                {!moment.repostOfId && moment.images && moment.images.length > 0 && (
                   <div className="grid grid-cols-3 gap-2 mt-3">
                     {moment.images.map((img, idx) => (
                       <img
@@ -280,9 +311,17 @@ export default function ProfilePage() {
                     ))}
                   </div>
                 )}
-                <p className="text-sm text-gray-400 mt-3">
-                  {formatTime(moment.createdAt)}
-                </p>
+
+                {moment.repostOfId && (
+                  <>
+                    {moment.repostComment && (
+                      <p className="text-gray-700 whitespace-pre-wrap">
+                        {moment.repostComment}
+                      </p>
+                    )}
+                    <RepostSourceBox moment={moment} />
+                  </>
+                )}
               </div>
             ))}
           </div>

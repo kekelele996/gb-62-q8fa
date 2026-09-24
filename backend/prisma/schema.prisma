@@ -130,13 +130,23 @@ model Moment {
   images      String[]
   authorId    String    @db.ObjectId
   author      User      @relation(fields: [authorId], references: [id])
-  
+
   comments    Comment[]
   likes       Like[]
-  
+
+  // 转发相关：转发本身也是一条动态，repostOfId 指向原动态根ID
+  // 转发时对原作者昵称/头像、原正文、原图做快照，原动态撤下后仍可展示
+  repostOfId        String?  @db.ObjectId
+  repostComment     String?
+  sourceAuthorId    String?  @db.ObjectId
+  sourceAuthorName  String?
+  sourceAuthorAvatar String?
+  sourceContent     String?
+  sourceImages      String[] @default([])
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  
+
   @@map("moments")
 }
 

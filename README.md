@@ -201,6 +201,8 @@ npm run dev
 ### 花友圈
 - `GET /api/moments` - 获取动态列表
 - `POST /api/moments` - 发布动态
+- `POST /api/moments/:id/repost` - 转发动态（body 可带不超过 80 字的 `comment` 看法；不可转发自己的动态、不可重复转发同一条、不可转发转发内容）
+- `DELETE /api/moments/:id` - 撤下动态（原作者可撤下原动态，转发者可撤下自己的转发；原动态撤下后转发保留内容快照并提示"来源内容已撤下"）
 
 ### 用户关系
 - `POST /api/users/follow/:userId` - 关注用户

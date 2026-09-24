@@ -7,15 +7,20 @@ import { useAuth } from '@/context/AuthContext';
 import { momentApi, uploadApi, interactionApi } from '@/lib/api';
 import { formatTime } from '@/lib/time';
 import { Moment, Comment } from '@/types';
-import { 
-  Plus, 
-  Heart, 
-  MessageCircle, 
+import RepostSourceBox from '@/components/RepostSourceBox';
+import {
+  Plus,
+  Heart,
+  MessageCircle,
   Send,
   X,
   Image as ImageIcon,
-  User as UserIcon
+  User as UserIcon,
+  Repeat2,
+  Trash2
 } from 'lucide-react';
+
+const REPOST_MAX_LENGTH = 80;
 
 export default function MomentsPage() {
   const [moments, setMoments] = useState<Moment[]>([]);
@@ -25,6 +30,9 @@ export default function MomentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [repostingId, setRepostingId] = useState<string | null>(null);
+  const [repostComment, setRepostComment] = useState('');
+  const [repostSubmitting, setRepostSubmitting] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -115,6 +123,51 @@ export default function MomentsPage() {
       alert('评论失败');
     }
   };
+
+  const openRepostBox = (momentId: string) => {
+    if (repostingId === momentId) {
+      setRepostingId(null);
+    } else {
+      setRepostingId(momentId);
+      setRepostComment('');
+    }
+  };
+
+  const handleRepost = async (momentId: string) => {
+    if (Array.from(repostComment.trim()).length > REPOST_MAX_LENGTH) {
+      alert(`转发看法不能超过${REPOST_MAX_LENGTH}个字`);
+      return;
+    }
+
+    setRepostSubmitting(true);
+    try {
+      await momentApi.repost(momentId, repostComment.trim() || undefined);
+      setRepostingId(null);
+      setRepostComment('');
+      loadMoments();
+    } catch (error: any) {
+      alert(error.response?.data?.error || '转发失败，请重试');
+    } finally {
+      setRepostSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (momentId: string) => {
+    if (!confirm('确定撤下这条动态吗？')) return;
+
+    try {
+      await momentApi.delete(momentId);
+      loadMoments();
+    } catch (error: any) {
+      alert(error.response?.data?.error || '删除失败');
+    }
+  };
+
+  const repostedSourceIds = new Set(
+    moments
+      .filter(m => m.authorId === user?.id && m.repostOfId)
+      .map(m => m.repostOfId!)
+  );
 
   if (loading) {
     return (
@@ -210,7 +263,7 @@ export default function MomentsPage() {
                   </div>
                 </Link>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 flex-wrap">
                     <Link href={`/profile/${moment.author.id}`} className="font-medium text-gray-800">
                       {moment.author.username}
                     </Link>
@@ -220,18 +273,23 @@ export default function MomentsPage() {
                       {moment.author.level === 'FLOWER' && '🌸'}
                       {moment.author.level === 'TREE' && '🌳'}
                     </span>
+                    {moment.repostOfId && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-600">
+                        转发
+                      </span>
+                    )}
                     <span className="text-sm text-gray-400">
                       {formatTime(moment.createdAt)}
                     </span>
                   </div>
 
-                  {moment.content && (
+                  {!moment.repostOfId && moment.content && (
                     <p className="text-gray-700 mt-2 whitespace-pre-wrap">
                       {moment.content}
                     </p>
                   )}
 
-                  {moment.images && moment.images.length > 0 && (
+                  {!moment.repostOfId && moment.images && moment.images.length > 0 && (
                     <div className={`grid gap-2 mt-3 ${
                       moment.images.length === 1 ? 'grid-cols-1' :
                       moment.images.length === 2 ? 'grid-cols-2' :
@@ -250,6 +308,17 @@ export default function MomentsPage() {
                     </div>
                   )}
 
+                  {moment.repostOfId && (
+                    <>
+                      {moment.repostComment && (
+                        <p className="text-gray-700 mt-2 whitespace-pre-wrap">
+                          {moment.repostComment}
+                        </p>
+                      )}
+                      <RepostSourceBox moment={moment} />
+                    </>
+                  )}
+
                   <div className="flex items-center space-x-6 mt-4">
                     <button
                       onClick={() => handleLike(moment.id)}
@@ -262,7 +331,66 @@ export default function MomentsPage() {
                       <MessageCircle className="w-5 h-5" />
                       <span className="text-sm">{moment._count?.comments || 0}</span>
                     </span>
+                    {!moment.repostOfId &&
+                      moment.authorId !== user?.id &&
+                      !repostedSourceIds.has(moment.id) && (
+                        <button
+                          onClick={() => openRepostBox(moment.id)}
+                          className="flex items-center space-x-1 text-gray-500 hover:text-purple-500"
+                        >
+                          <Repeat2 className="w-5 h-5" />
+                          <span className="text-sm">转发</span>
+                        </button>
+                      )}
+                    {(moment.authorId === user?.id || user?.isAdmin) && (
+                      <button
+                        onClick={() => handleDelete(moment.id)}
+                        className="flex items-center space-x-1 text-gray-400 hover:text-red-500 ml-auto"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="text-sm">撤下</span>
+                      </button>
+                    )}
                   </div>
+
+                  {repostingId === moment.id && (
+                    <div className="mt-3 p-3 rounded-lg bg-purple-50 border border-purple-100 space-y-2">
+                      <textarea
+                        value={repostComment}
+                        onChange={(e) => setRepostComment(e.target.value.slice(0, REPOST_MAX_LENGTH * 2))}
+                        className="input-field min-h-[60px] resize-none text-sm"
+                        placeholder="说说你的看法（可选，不超过80个字）"
+                        autoFocus
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs ${
+                          Array.from(repostComment).length > REPOST_MAX_LENGTH
+                            ? 'text-red-500'
+                            : 'text-gray-400'
+                        }`}>
+                          {Array.from(repostComment).length}/{REPOST_MAX_LENGTH}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => setRepostingId(null)}
+                            className="px-3 py-1 text-sm text-gray-500 hover:bg-gray-100 rounded"
+                          >
+                            取消
+                          </button>
+                          <button
+                            onClick={() => handleRepost(moment.id)}
+                            disabled={
+                              repostSubmitting ||
+                              Array.from(repostComment.trim()).length > REPOST_MAX_LENGTH
+                            }
+                            className="px-3 py-1 text-sm bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50"
+                          >
+                            {repostSubmitting ? '转发中...' : '确认转发'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {moment.comments && moment.comments.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-gray-100">
